@@ -1,6 +1,6 @@
 """Risk response model."""
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
 
 
@@ -26,6 +26,15 @@ class RiskResponse(BaseModel):
     risk_level: str
     should_approve: bool
     requires_review: bool
+
+
+class RiskResponseV2(BaseModel):
+    """Risk response model - modern Pydantic v2 style."""
+    
+    risk_score: Literal["Low", "Medium", "High"]
+    reasons: List[str]
+    compliance_explanation: Optional[str] = None
+    regulation_sources: Optional[List[str]] = None
 
 
 class ComplianceReport(BaseModel):
