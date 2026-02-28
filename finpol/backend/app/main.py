@@ -8,8 +8,13 @@ This module provides:
 - Dependency injection setup
 """
 import logging
+import warnings
 from contextlib import asynccontextmanager
 from uuid import uuid4
+
+# Suppress deprecation warnings from third-party libraries
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message="distutils Version classes are deprecated")
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

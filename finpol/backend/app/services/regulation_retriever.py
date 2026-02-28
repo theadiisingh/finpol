@@ -6,7 +6,7 @@ This module provides:
 - Easy extension for different retrieval methods
 - Error handling and logging
 """
-from typing import List, Optional, Protocol
+from typing import List, Optional, Protocol, Any
 import logging
 import asyncio
 
@@ -68,7 +68,7 @@ class RegulationRetriever:
             self._vectorstore_manager = VectorStoreManager(self.index_path)
         return self._vectorstore_manager
     
-    def retrieve(self, query: str, top_k: int = 3) -> List[str]:
+    def retrieve_sync(self, query: str, top_k: int = 3) -> List[str]:
         """
         Synchronous retrieval of relevant regulations.
         
@@ -101,7 +101,7 @@ class RegulationRetriever:
             logger.error(f"Failed to retrieve regulations: {e}")
             raise RuntimeError(f"Retrieval failed: {e}")
     
-    async def retrieve_async(self, query: str, top_k: int = 3) -> List[str]:
+    async def retrieve(self, query: str, top_k: int = 3) -> List[str]:
         """
         Asynchronous retrieval of relevant regulations.
         
@@ -116,20 +116,7 @@ class RegulationRetriever:
         """
         # Run sync operation in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.retrieve, query, top_k)
-    
-    async def retrieve(self, query: str, top_k: int = 3) -> List[str]:
-        """
-        Async alias for retrieve_async.
-        
-        Args:
-            query: Search query string
-            top_k: Number of results to return
-            
-        Returns:
-            List of page content strings
-        """
-        return await self.retrieve_async(query, top_k)
+        return await loop.run_in_executor(None, self.retrieve_sync, query, top_k)
     
     def search_regulations(self, query: str, top_k: int = 3) -> List[dict]:
         """
@@ -142,7 +129,7 @@ class RegulationRetriever:
         Returns:
             List of regulation dictionaries
         """
-        results = self.retrieve(query, top_k)
+        results = self.retrieve_sync(query, top_k)
         return [{"content": r, "source": "faiss"} for r in results]
     
     async def search_regulations_async(self, query: str, top_k: int = 3) -> List[dict]:
@@ -156,7 +143,7 @@ class RegulationRetriever:
         Returns:
             List of regulation dictionaries
         """
-        results = await self.retrieve_async(query, top_k)
+        results = await self.retrieve(query, top_k)
         return [{"content": r, "source": "faiss"} for r in results]
     
     def _get_fallback_regulations(self) -> List[str]:

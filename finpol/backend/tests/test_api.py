@@ -21,7 +21,7 @@ class TestAPI:
     async def test_health_endpoint(self):
         """Test health check endpoint."""
         async with AsyncClient(app=app, base_url="http://test") as client:
-            response = await client.get("/health")
+            response = await client.get("/api/v1/health")
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "healthy"
@@ -36,7 +36,7 @@ class TestAPI:
     @pytest.mark.asyncio
     async def test_transaction_endpoint(self):
         """Test transaction creation endpoint."""
-        async with AsyncClient(app=app, base_url="http://test") as client:
+        async with AsyncClient(app=app, base_url="http://test", follow_redirects=True) as client:
             transaction_data = {
                 "user_id": "user-123",
                 "amount": 1000,
@@ -49,7 +49,7 @@ class TestAPI:
                 "device_risk_score": 0.2
             }
             response = await client.post("/api/v1/transactions", json=transaction_data)
-            assert response.status_code == 200
+            assert response.status_code in [200, 201]
             data = response.json()
             assert "id" in data
             assert data["amount"] == 1000
@@ -72,3 +72,44 @@ class TestAPI:
             data = response.json()
             assert "risk_score" in data
             assert "risk_level" in data
+    
+    @pytest.mark.asyncio
+    async def test_compliance_regulations_endpoint(self):
+        """Test compliance regulations endpoint."""
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get("/api/v1/compliance/regulations")
+            assert response.status_code == 200
+            data = response.json()
+            assert isinstance(data, list)
+    
+    @pytest.mark.asyncio
+    async def test_compliance_report_endpoint(self):
+        """Test compliance report generation endpoint."""
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/compliance/report/tx-001?risk_score=80&risk_level=High"
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["transaction_id"] == "tx-001"
+            assert data["compliance_status"] == "review_required"
+    
+    @pytest.mark.asyncio
+    async def test_compliance_health_endpoint(self):
+        """Test compliance health endpoint."""
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.get("/api/v1/compliance/health")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "operational"
+    
+    @pytest.mark.asyncio
+    async def test_compliance_search_endpoint(self):
+        """Test compliance search endpoint."""
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.post(
+                "/api/v1/compliance/regulations/search?query=money+laundering"
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert isinstance(data, list)

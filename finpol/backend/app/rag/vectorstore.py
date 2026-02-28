@@ -1,7 +1,7 @@
 """FAISS Vector Store module for RAG system."""
 import faiss
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Protocol, Any
 import logging
 import os
 
@@ -11,6 +11,14 @@ from app.config import settings
 from app.rag.embeddings import get_embeddings_model
 
 logger = logging.getLogger(__name__)
+
+
+class VectorStoreManagerProtocol(Protocol):
+    """Protocol for VectorStoreManager."""
+    
+    def load_vectorstore(self) -> FAISS: ...
+    
+    def save_vectorstore(self, texts: List[str], metadatas: Optional[List[dict]] = None) -> FAISS: ...
 
 
 class VectorStoreManager:

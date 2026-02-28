@@ -59,7 +59,7 @@ async def search_regulations(
 ):
     """Search regulations by query."""
     try:
-        results = await retriever.search_regulations(query)
+        results = await retriever.search_regulations_async(query)
         return results
     except FileNotFoundError:
         # Return sample results if vectorstore not available
