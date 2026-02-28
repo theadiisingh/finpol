@@ -1,0 +1,64 @@
+"""Embeddings module for RAG system."""
+from typing import List
+import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Embeddings:
+    """Text embeddings for semantic search."""
+    
+    def __init__(self, model_name: str = "text-embedding-ada-002"):
+        """
+        Initialize embeddings model.
+        
+        Args:
+            model_name: Name of embedding model
+        """
+        self.model_name = model_name
+    
+    def embed_text(self, text: str) -> np.ndarray:
+        """
+        Generate embedding for text.
+        
+        Args:
+            text: Text to embed
+            
+        Returns:
+            Embedding vector
+        """
+        # Placeholder - in production use OpenAI embeddings
+        # For now, return random vector
+        dimension = 1536  # OpenAI ada-002 dimension
+        return np.random.randn(dimension)
+    
+    def embed_documents(self, documents: List[str]) -> np.ndarray:
+        """
+        Generate embeddings for multiple documents.
+        
+        Args:
+            documents: List of documents
+            
+        Returns:
+            Numpy array of embeddings
+        """
+        embeddings = []
+        for doc in documents:
+            embedding = self.embed_text(doc)
+            embeddings.append(embedding)
+        
+        logger.info(f"Generated embeddings for {len(documents)} documents")
+        return np.array(embeddings)
+    
+    def embed_query(self, query: str) -> np.ndarray:
+        """
+        Generate embedding for query.
+        
+        Args:
+            query: Query text
+            
+        Returns:
+            Query embedding
+        """
+        return self.embed_text(query)
