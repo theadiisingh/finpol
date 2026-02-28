@@ -2,6 +2,10 @@
 import os
 import logging
 from typing import List
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -94,13 +98,35 @@ def ingest() -> None:
     """
     logger.info("Starting document ingestion")
     
-    regulations_path = "./backend/data/regulations"
+    # Get the backend directory path
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    regulations_path = os.path.join(backend_dir, "data", "regulations")
+    
     logger.info(f"Loading PDFs from: {regulations_path}")
     
     documents = load_pdfs(regulations_path)
     
     if not documents:
-        logger.warning("No documents found to ingest")
+        logger.warning("No documents found to ingest. Creating sample regulations.")
+        # Create sample regulations for demo purposes
+        sample_regulations = [
+            "Anti-Money Laundering (AML) Act: Financial institutions must report suspicious transactions over $10,000 to relevant authorities.",
+            "Know Your Customer (KYC) Regulation: All financial institutions must verify customer identity before opening accounts.",
+            "Bank Secrecy Act (BSA): Requires financial institutions to assist government agencies in detecting and preventing money laundering.",
+            "Patriot Act: Enhanced due diligence requirements for international banking relationships.",
+            "FATF Recommendations: International standards for combating money laundering and terrorist financing.",
+            "Currency Transaction Reporting: Transactions over $10,000 must be reported to FinCEN.",
+            "Suspicious Activity Reports: Financial institutions must file SARs for suspicious transactions.",
+            "Customer Identification Program: Banks must implement written CIPs to identify customers."
+        ]
+        
+        # Store sample regulations directly
+        texts = sample_regulations
+        metadatas = [{"source": f"regulation_{i}"} for i in range(len(sample_regulations))]
+        
+        manager = VectorStoreManager()
+        manager.save_vectorstore(texts, metadatas)
+        logger.info(f"Created sample vectorstore with {len(sample_regulations)} regulations")
         return
     
     logger.info(f"Loaded {len(documents)} documents")

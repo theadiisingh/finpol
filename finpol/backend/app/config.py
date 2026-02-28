@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     
     # Required configuration
     openai_api_key: str = Field(..., description="OpenAI API key for LLM")
-    model_name: str = Field(default="gpt-4", description="LLM model name")
+    model_name: str = Field(default="gpt-4o", description="LLM model name")
+    embedding_model: str = Field(default="text-embedding-3-small", description="Embedding model name")
     vector_db_path: str = Field(default="./data/faiss_index", description="Path to FAISS vector database")
     debug: bool = Field(default=False, description="Debug mode flag")
     
@@ -50,17 +51,20 @@ class Settings(BaseSettings):
         """Validate OpenAI API key is not empty."""
         if not v or len(v.strip()) == 0:
             raise ValueError("OPENAI_API_KEY cannot be empty")
-        if v.startswith("sk-"):
+        # Allow any key format (sk- for older, sk-proj- for newer)
+        if len(v) > 10:
             return v
-        raise ValueError("OPENAI_API_KEY must start with 'sk-'")
+        raise ValueError("OPENAI_API_KEY must be a valid API key")
     
     @field_validator("model_name")
     @classmethod
     def validate_model_name(cls, v: str) -> str:
-        """Validate model name."""
-        allowed_models = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
-        if v not in allowed_models:
-            raise ValueError(f"MODEL_NAME must be one of: {allowed_models}")
+        """Validate model name - allow any OpenAI model."""
+        # Accept any model that starts with gpt- or o1
+        allowed_prefixes = ["gpt-", "o1", "o3", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+        if any(v.startswith(prefix) for prefix in allowed_prefixes):
+            return v
+        # For custom/deployed models, just return as-is
         return v
     
     @field_validator("cors_origins")

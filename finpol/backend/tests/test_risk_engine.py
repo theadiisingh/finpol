@@ -1,8 +1,8 @@
 """Tests for Risk Engine service."""
 import pytest
-from app.services.risk_engine import RiskEngine
-from app.models.transaction import Transaction, TransactionType
-from app.models.risk import RiskLevel
+from datetime import datetime
+from app.services.risk_engine import RiskEngine, RiskLevel
+from app.models.transaction_model import Transaction, TransactionType
 
 
 class TestRiskEngine:
@@ -17,42 +17,50 @@ class TestRiskEngine:
     def sample_transaction(self):
         """Create sample transaction."""
         return Transaction(
-            id="test-001",
+            transaction_id="test-001",
             user_id="user-123",
-            amount=5000,
+            amount=100,
             currency="USD",
             transaction_type=TransactionType.TRANSFER,
             description="Test transfer",
             recipient_account="ACC123456",
-            sender_account="ACC789012"
+            sender_account="ACC789012",
+            country="India",
+            merchant_type="retail",
+            device_risk_score=0.3,
+            timestamp=datetime.now()
         )
     
     def test_assess_low_risk_transaction(self, risk_engine, sample_transaction):
         """Test assessment of low risk transaction."""
-        sample_transaction.amount = 100
         assessment = risk_engine.assess_risk(sample_transaction)
         
         assert assessment.risk_score < 50
-        assert assessment.risk_level in [RiskLevel.LOW, RiskLevel.MEDIUM]
+        assert assessment.risk_level in ["Low", "Medium"]
     
     def test_assess_high_amount_transaction(self, risk_engine, sample_transaction):
         """Test assessment of high amount transaction."""
-        sample_transaction.amount = 50000
+        sample_transaction.amount = 2000000
         assessment = risk_engine.assess_risk(sample_transaction)
         
         assert any("amount" in factor.lower() for factor in assessment.factors)
+        assert assessment.risk_level == "High"
     
-    def test_assess_transfer_transaction(self, risk_engine, sample_transaction):
-        """Test assessment of transfer transaction."""
-        sample_transaction.transaction_type = TransactionType.TRANSFER
+    def test_assess_crypto_merchant(self, risk_engine, sample_transaction):
+        """Test assessment of crypto merchant type."""
+        sample_transaction.merchant_type = "crypto_exchange"
         assessment = risk_engine.assess_risk(sample_transaction)
         
-        assert any("transfer" in factor.lower() for factor in assessment.factors)
+        assert any("crypto" in factor.lower() for factor in assessment.factors)
     
-    def test_create_risk_response_approve(self, risk_engine, sample_transaction):
-        """Test risk response for low risk."""
+    def test_create_risk_response(self, risk_engine, sample_transaction):
+        """Test risk response creation."""
         assessment = risk_engine.assess_risk(sample_transaction)
-        response = risk_engine.create_risk_response(assessment)
+        response = risk_engine.create_risk_response(
+            assessment=assessment,
+            transaction_id=sample_transaction.transaction_id
+        )
         
+        assert response.transaction_id == sample_transaction.transaction_id
         assert response.should_approve is not None
         assert response.requires_review is not None

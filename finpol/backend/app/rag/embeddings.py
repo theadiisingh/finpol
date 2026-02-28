@@ -32,7 +32,7 @@ def get_embeddings_model() -> Any:
     from app.config import settings
     
     return OpenAIEmbeddings(
-        model=settings.model_name,
+        model=settings.embedding_model,
         openai_api_key=settings.openai_api_key
     )
 
@@ -40,7 +40,7 @@ def get_embeddings_model() -> Any:
 class Embeddings:
     """Text embeddings for semantic search."""
     
-    def __init__(self, model_name: str = "text-embedding-ada-002"):
+    def __init__(self, model_name: str = "text-embedding-3-small"):
         """
         Initialize embeddings model.
         
