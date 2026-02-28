@@ -6,7 +6,7 @@ from app.services.regulation_retriever import RegulationRetriever
 # Global service instances
 risk_engine = RiskEngine()
 regulation_retriever = RegulationRetriever()
-compliance_generator = ComplianceGenerator(regulation_retriever)
+compliance_generator = ComplianceGenerator()
 
 
 def get_risk_engine() -> RiskEngine:

@@ -26,6 +26,7 @@ class RiskResponse(BaseModel):
     risk_level: str
     should_approve: bool
     requires_review: bool
+    compliance_explanation: Optional[str] = None
 
 
 class RiskResponseV2(BaseModel):
