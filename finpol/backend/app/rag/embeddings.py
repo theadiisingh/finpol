@@ -1,9 +1,40 @@
 """Embeddings module for RAG system."""
-from typing import List
+from typing import List, Protocol, Any
 import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class EmbeddingsProvider(Protocol):
+    """Protocol for embeddings providers."""
+    
+    def embed_text(self, text: str) -> np.ndarray:
+        """Generate embedding for text."""
+        ...
+    
+    def embed_documents(self, documents: List[str]) -> np.ndarray:
+        """Generate embeddings for multiple documents."""
+        ...
+
+
+def get_embeddings_model() -> Any:
+    """
+    Get embeddings model instance.
+    
+    Uses OpenAIEmbeddings from LangChain with OPENAI_API_KEY from config.
+    Modular structure for easy provider switching in the future.
+    
+    Returns:
+        OpenAIEmbeddings instance
+    """
+    from langchain_openai import OpenAIEmbeddings
+    from app.config import settings
+    
+    return OpenAIEmbeddings(
+        model=settings.model_name,
+        openai_api_key=settings.openai_api_key
+    )
 
 
 class Embeddings:
