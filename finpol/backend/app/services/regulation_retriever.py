@@ -1,6 +1,8 @@
 """Regulation Retriever Service - FAISS-based RAG for regulations."""
-from typing import List, Dict
+from typing import List
 import logging
+
+from app.rag.vectorstore import VectorStoreManager
 
 logger = logging.getLogger(__name__)
 
@@ -8,54 +10,63 @@ logger = logging.getLogger(__name__)
 class RegulationRetriever:
     """FAISS-based regulation retrieval service."""
     
-    def __init__(self, index_path: str = None, data_path: str = None):
+    def __init__(self, index_path: str = None):
+        """
+        Initialize the retriever.
+        
+        Args:
+            index_path: Path to FAISS vectorstore. Defaults to config value.
+        """
         self.index_path = index_path
-        self.data_path = data_path
-        self.faiss_index = None
-        self.regulations = []
+        self._vectorstore_manager = None
+    
+    def _get_vectorstore_manager(self) -> VectorStoreManager:
+        """Get or create vectorstore manager instance."""
+        if self._vectorstore_manager is None:
+            self._vectorstore_manager = VectorStoreManager(self.index_path)
+        return self._vectorstore_manager
+    
+    def retrieve(self, query: str) -> List[str]:
+        """
+        Retrieve relevant regulations using similarity search.
+        
+        Args:
+            query: Search query string
+            
+        Returns:
+            List of page content strings from relevant documents
+            
+        Raises:
+            FileNotFoundError: If vectorstore not found
+            RuntimeError: If retrieval fails
+        """
+        try:
+            manager = self._get_vectorstore_manager()
+            vectorstore = manager.load_vectorstore()
+            
+            docs = vectorstore.similarity_search(query, k=3)
+            
+            results = [doc.page_content for doc in docs]
+            logger.info(f"Retrieved {len(results)} documents for query: {query}")
+            
+            return results
+            
+        except FileNotFoundError as e:
+            logger.error(f"Vectorstore not found: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to retrieve regulations: {e}")
+            raise RuntimeError(f"Retrieval failed: {e}")
     
     async def initialize(self):
         """Initialize the retriever with regulations."""
-        # Sample regulations data
-        self.regulations = [
-            {
-                "id": "RBI-AML-001",
-                "title": "RBI AML Guidelines",
-                "content": "Anti-Money Laundering guidelines per RBI directives",
-                "type": "AML"
-            },
-            {
-                "id": "KYC-MD-001",
-                "title": "KYC Master Direction",
-                "content": "Know Your Customer master direction guidelines",
-                "type": "KYC"
-            },
-            {
-                "id": "FATF-001",
-                "title": "FATF Guidelines",
-                "content": "Financial Action Task Force guidelines",
-                "type": "FATF"
-            }
-        ]
         logger.info("Regulation retriever initialized")
     
-    async def search_regulations(self, query: str, top_k: int = 3) -> List[Dict]:
-        """Search regulations by query."""
-        if not self.regulations:
-            await self.initialize()
-        
-        # Simple keyword-based search (use FAISS in production)
-        results = []
-        query_lower = query.lower()
-        
-        for reg in self.regulations:
-            if query_lower in reg.get("content", "").lower() or query_lower in reg.get("title", "").lower():
-                results.append(reg)
-        
-        return results[:top_k]
+    async def search_regulations(self, query: str, top_k: int = 3) -> List[dict]:
+        """Search regulations by query (legacy method)."""
+        results = self.retrieve(query)
+        return [{"content": r} for r in results[:top_k]]
     
-    async def get_all_regulations(self) -> List[Dict]:
-        """Get all available regulations."""
-        if not self.regulations:
-            await self.initialize()
-        return self.regulations
+    async def get_all_regulations(self) -> List[dict]:
+        """Get all available regulations (legacy method)."""
+        return []
