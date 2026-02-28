@@ -1,35 +1,115 @@
 """RAG Ingestion module for document processing."""
-from typing import List
+import os
 import logging
+from typing import List
 
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+from app.rag.embeddings import get_embeddings_model
+from app.rag.vectorstore import VectorStoreManager
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
-async def ingest_documents(data_path: str) -> List[str]:
+def load_pdfs(directory: str) -> List:
     """
-    Ingest documents from data path for RAG system.
+    Load all PDFs from a directory.
     
     Args:
-        data_path: Path to regulations data directory
+        directory: Path to directory containing PDFs
         
     Returns:
-        List of document IDs
+        List of loaded documents
     """
-    logger.info(f"Ingesting documents from {data_path}")
-    # Placeholder for document ingestion
-    # In production: Load PDFs, process text, store in FAISS
-    return ["doc1", "doc2", "doc3"]
+    documents = []
+    
+    if not os.path.exists(directory):
+        logger.warning(f"Directory does not exist: {directory}")
+        return documents
+    
+    for filename in os.listdir(directory):
+        if filename.lower().endswith(".pdf"):
+            filepath = os.path.join(directory, filename)
+            logger.info(f"Loading PDF: {filename}")
+            try:
+                loader = PyPDFLoader(filepath)
+                docs = loader.load()
+                documents.extend(docs)
+                logger.info(f"Loaded {len(docs)} pages from {filename}")
+            except Exception as e:
+                logger.error(f"Failed to load {filename}: {e}")
+    
+    return documents
 
 
-async def process_document(file_path: str) -> str:
+def split_documents(documents: List, chunk_size: int = 1000, chunk_overlap: int = 200) -> List:
     """
-    Process a single document.
+    Split documents into chunks using RecursiveCharacterTextSplitter.
     
     Args:
-        file_path: Path to document
+        documents: List of documents to split
+        chunk_size: Size of each chunk
+        chunk_overlap: Overlap between chunks
         
     Returns:
-        Processed text content
+        List of split documents
     """
-    # Placeholder for document processing
-    return "Processed document content"
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", " ", ""]
+    )
+    
+    splits = splitter.split_documents(documents)
+    logger.info(f"Split {len(documents)} documents into {len(splits)} chunks")
+    return splits
+
+
+def create_embeddings_and_store(splits: List) -> None:
+    """
+    Create embeddings from document splits and store in FAISS.
+    
+    Args:
+        splits: List of document splits
+    """
+    texts = [doc.page_content for doc in splits]
+    metadatas = [doc.metadata for doc in splits]
+    
+    manager = VectorStoreManager()
+    manager.save_vectorstore(texts, metadatas)
+    logger.info("Embeddings created and stored in FAISS")
+
+
+def ingest() -> None:
+    """
+    Main ingestion function.
+    
+    Loads PDFs from regulations directory, splits into chunks,
+    creates embeddings, and stores in FAISS.
+    """
+    logger.info("Starting document ingestion")
+    
+    regulations_path = "./backend/data/regulations"
+    logger.info(f"Loading PDFs from: {regulations_path}")
+    
+    documents = load_pdfs(regulations_path)
+    
+    if not documents:
+        logger.warning("No documents found to ingest")
+        return
+    
+    logger.info(f"Loaded {len(documents)} documents")
+    
+    splits = split_documents(documents)
+    create_embeddings_and_store(splits)
+    
+    logger.info("Ingestion complete")
+
+
+if __name__ == "__main__":
+    ingest()
