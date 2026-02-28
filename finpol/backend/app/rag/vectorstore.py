@@ -3,8 +3,79 @@ import faiss
 import numpy as np
 from typing import List, Optional
 import logging
+import os
+
+from langchain_community.vectorstores import FAISS
+
+from app.config import settings
+from app.rag.embeddings import get_embeddings_model
 
 logger = logging.getLogger(__name__)
+
+
+class VectorStoreManager:
+    """Manager for FAISS vector store operations."""
+    
+    def __init__(self, vector_db_path: Optional[str] = None):
+        """
+        Initialize VectorStoreManager.
+        
+        Args:
+            vector_db_path: Path to vector database. Defaults to config value.
+        """
+        self.vector_db_path = vector_db_path or settings.vector_db_path
+        self._vectorstore: Optional[FAISS] = None
+    
+    def load_vectorstore(self) -> FAISS:
+        """
+        Load vectorstore from disk.
+        
+        Returns:
+            FAISS vectorstore instance
+            
+        Raises:
+            FileNotFoundError: If vectorstore path doesn't exist
+        """
+        if not os.path.exists(self.vector_db_path):
+            raise FileNotFoundError(f"Vectorstore not found at {self.vector_db_path}")
+        
+        embeddings = get_embeddings_model()
+        self._vectorstore = FAISS.load_local(
+            self.vector_db_path,
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
+        logger.info(f"Vectorstore loaded from {self.vector_db_path}")
+        return self._vectorstore
+    
+    def save_vectorstore(self, texts: List[str], metadatas: Optional[List[dict]] = None) -> FAISS:
+        """
+        Create and save vectorstore to disk.
+        
+        Args:
+            texts: List of text documents to index
+            metadatas: Optional list of metadata for each document
+            
+        Returns:
+            FAISS vectorstore instance
+        """
+        embeddings = get_embeddings_model()
+        
+        self._vectorstore = FAISS.from_texts(
+            texts=texts,
+            embedding=embeddings,
+            metadatas=metadatas
+        )
+        
+        os.makedirs(self.vector_db_path, exist_ok=True)
+        self._vectorstore.save_local(self.vector_db_path)
+        logger.info(f"Vectorstore saved to {self.vector_db_path}")
+        return self._vectorstore
+    
+    @property
+    def vectorstore(self) -> Optional[FAISS]:
+        """Get current vectorstore instance."""
+        return self._vectorstore
 
 
 class VectorStore:
