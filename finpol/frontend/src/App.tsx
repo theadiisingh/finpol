@@ -1,24 +1,29 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Navbar from './components/Navbar'
-import Dashboard from './pages/Dashboard'
-import Transactions from './pages/Transactions'
-import ComplianceView from './pages/ComplianceView'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { AppLayout } from './components/layout/AppLayout';
+import { Dashboard } from './pages/Dashboard';
+import { Transactions } from './pages/Transactions';
+import { TransactionDetail } from './pages/TransactionDetail';
+import { Compliance } from './pages/Compliance';
+import { BulkReports } from './pages/BulkReports';
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/compliance" element={<ComplianceView />} />
-          </Routes>
-        </main>
-      </div>
+      <Toaster position="top-right" richColors />
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<BulkReports />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="transactions/:id" element={<TransactionDetail />} />
+          <Route path="compliance" element={<Compliance />} />
+          <Route path="bulk-reports" element={<BulkReports />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
